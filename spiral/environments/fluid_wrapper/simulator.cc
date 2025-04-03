@@ -30,7 +30,9 @@ Simulator::Simulator(const Config::Simulator& config) :
     kNumJacobiIterations(config.num_jacobi_iterations()),
     kNumFramesToSimulate(config.num_frames_to_simulate()),
     kSplatPadding(config.splat_padding()),
-    kSpeedPadding(config.speed_padding()) {}
+    kSpeedPadding(config.speed_padding()),
+    kFluidity_(config.fluidity()) 
+    {}
 
 void Simulator::Setup(int width, int height,
                       absl::string_view shader_base_dir) {
@@ -302,8 +304,8 @@ void Simulator::RunSubtract(Rectangle<float> simulation_area) {
       uniform_loc_map.at("u_pressureTexture"), 0,
       texture_map_.at(TextureId::kPressure));
   SetTextureUniformVariable(
-      uniform_loc_map.at("u_velocityTexture"), 1,
-      texture_map_.at(TextureId::kVelocity));
+    uniform_loc_map.at("u_velocityTexture"), 1,
+    texture_map_.at(TextureId::kVelocity)); 
 
   CHECK_GL_ERROR(glBindBuffer(GL_ARRAY_BUFFER, quad_vbo_));
   CHECK_GL_ERROR(glVertexAttribPointer(
@@ -316,7 +318,7 @@ void Simulator::RunSubtract(Rectangle<float> simulation_area) {
   CHECK_GL_ERROR(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
 
   CHECK_GL_ERROR(glDisable(GL_SCISSOR_TEST));
-
+  // Swap so the final result is back in kVelocity for the next frame/splat
   std::swap(texture_map_.at(TextureId::kVelocity),
             texture_map_.at(TextureId::kVelocityTemp));
 }
@@ -527,7 +529,7 @@ void Simulator::Splat(const Brush &brush,
 
 Simulator::Status Simulator::Simulate() {
   const float delta_time = 1.0 / 60.0;
-  const float fluidity = 0.8;
+  //const float fluidity = 0.8;
 
   if (splat_areas_.empty()) {
     return Status::kSkippedSimulation;
@@ -548,9 +550,12 @@ Simulator::Status Simulator::Simulate() {
   RunAdvect(
       simulation_area,
       TextureId::kVelocity, TextureId::kVelocity, TextureId::kVelocityTemp,
-      delta_time, fluidity);
+      delta_time, kFluidity_);
   std::swap(texture_map_.at(TextureId::kVelocity),
             texture_map_.at(TextureId::kVelocityTemp));
+  // This step is crucial for fluid simulation to make velocity divergence-free
+  // Add it after advecting velocity and before cleaning up splat areas.
+  RunSubtract(simulation_area);
 
   frame_number_++;
 

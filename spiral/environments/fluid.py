@@ -100,7 +100,10 @@ class FluidPaint(environment.Environment):
                brush_sizes,
                rewards=None,
                discount=1.,
-               shaders_basedir=""):
+               shaders_basedir="",
+               fluidity=None,
+               num_bristles=None):
+    
     self._name = "fluid_paint"
 
     if brush_sizes is None:
@@ -130,6 +133,32 @@ class FluidPaint(environment.Environment):
     self._prev_reward = 0
 
     config = config_pb2.Config()
+
+    # Set fluidity if provided
+    if fluidity is not None:
+      # Validate fluidity range if desired (e.g., 0.0 to 1.0)
+      if 0.0 <= fluidity <= 1.0:
+          config.simulator.fluidity = fluidity
+      else:
+          print(f"Warning: Provided fluidity {fluidity} is outside typical [0, 1] range.")
+          # Decide whether to clamp, use default, or raise error
+          # Using provided value for now:
+          config.simulator.fluidity = fluidity
+
+
+    # Set num_bristles if provided (optional bonus)
+    if num_bristles is not None:
+        if num_bristles > 0:
+            config.brush.num_bristles = int(num_bristles)
+        else:
+            print(f"Warning: Invalid num_bristles {num_bristles}. Using default.")
+            # Falls back to proto default if not set
+
+    #config.brush.num_bristles = 50
+    # Check if shader dir exists
+    if not os.path.isdir(shaders_basedir):
+        # Add error handling or default path logic if needed
+        raise ValueError(f"Shader directory not found: {shaders_basedir}")
 
     self._wrapper = pyfluid.Wrapper(config.SerializeToString())
     self._wrapper.Setup(

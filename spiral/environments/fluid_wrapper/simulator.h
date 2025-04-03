@@ -97,13 +97,19 @@ class Simulator {
                         float velocity_scale);
 
   // Constant settings.
-  const unsigned int kNumJacobiIterations = 2;
+  //const unsigned int kNumJacobiIterations = 2;
 
-  const unsigned int kNumFramesToSimulate = 60;
+  //const unsigned int kNumFramesToSimulate = 60;
 
-  const float kSplatPadding = 4.5;
-  const float kSpeedPadding = 1.1;
-
+  //const float kSplatPadding = 4.5;
+  //const float kSpeedPadding = 1.1;
+  // Constant settings. Read from config.
+  const unsigned int kNumJacobiIterations; // Keep existing ones
+  const unsigned int kNumFramesToSimulate;
+  const float kSplatPadding;
+  const float kSpeedPadding;
+  const float kFluidity_;
+  
   // Non-constant variables.
   int width_ = 0;
   int height_ = 0;
